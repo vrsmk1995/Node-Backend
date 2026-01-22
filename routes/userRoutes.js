@@ -1,7 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const User = require("../models/user");
+const auth = require("../middleware/authMiddleware");
 const { default: mongoose } = require("mongoose");
+const { getProfile } = require("../controllers/userController");
 
 // CREATE USER
 router.post("/", async (req, res) => {
@@ -46,16 +48,25 @@ router.get("/", async (req, res) => {
       if (req.query.maxAge) filter.age.$lte = parseInt(req.query.maxAge);
     }
 
+    // search
+
+    if (req.query.search) {
+      filter.name = { $regex: req.query.search, $options: "i" };
+    }
+
     // Sorting
     const sortBy = req.query.sortBy || "age";
-    const sortOrder = req.query.sortOrder === "desc" ? -1 :1 ;
-    const sortCriteria = {[sortBy]:sortOrder};
+    const sortOrder = req.query.sortOrder === "desc" ? -1 : 1;
+    const sortCriteria = { [sortBy]: sortOrder };
     // 3️⃣ Count filtered users
     const totalUsers = await User.countDocuments(filter);
     const totalPages = Math.ceil(totalUsers / limit);
 
     // 4️⃣ Fetch filtered + paginated users
-    const users = await User.find(filter).sort(sortCriteria).skip(skip).limit(limit);
+    const users = await User.find(filter)
+      .sort(sortCriteria)
+      .skip(skip)
+      .limit(limit);
 
     // 5️⃣ Send response
     res.json({
@@ -72,7 +83,6 @@ router.get("/", async (req, res) => {
     });
   }
 });
-
 
 // UPDATE USER
 router.put("/:id", async (req, res) => {
@@ -129,5 +139,7 @@ router.delete("/", async (req, res) => {
     });
   }
 });
+
+router.get("/profile", auth, getProfile);
 
 module.exports = router;
