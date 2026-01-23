@@ -1,73 +1,32 @@
-const User = require("../models/user");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-
-exports.login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ message: "invalid email or password" });
-    }
-    const ispasswordValid = await bcrypt.compare(password, user.password);
-    if (!ispasswordValid) {
-      return res.status(400).json({ message: "invalid email or password" });
-    }
-    const token = jwt.sign(
-      {
-        user: user._id.toString(),
-        role: user.role,
-      },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: "7d",
-      },
-    );
-    res.json({ message: "Login Successful", token });
-  } catch (err) {
-    console.log("Login Error:", err);
-    res.status(500).json({ message: "login Failed", error: err.message });
-  }
-};
+const authService = require("../services/authService");
 
 exports.signup = async (req, res) => {
   try {
-    const { name, age, Gender, phone, email, password } = req.body;
-
-    //  Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res
-        .status(400)
-        .json({ message: "User already registered. Please login." });
-    }
-
-    //  Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create user with ALL required fields
-    const user = await User.create({
-      name,
-      age,
-      Gender,
-      phone,
-      email,
-      password: hashedPassword,
-    });
+    const user = await authService.signup(req.body);
 
     res.status(201).json({
       message: "User registered successfully",
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-      },
+      user,
     });
   } catch (err) {
-    console.error("Signup Error:", err);
-    res.status(500).json({
-      message: "SignUp Failed",
+    res.status(400).json({
+      message: "Signup failed",
+      error: err.message,
+    });
+  }
+};
+
+exports.login = async (req, res) => {
+  try {
+    const result = await authService.login(req.body);
+
+    res.json({
+      message: "Login successful",
+      ...result,
+    });
+  } catch (err) {
+    res.status(400).json({
+      message: "Login failed",
       error: err.message,
     });
   }

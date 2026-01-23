@@ -1,4 +1,4 @@
-const mongoose = require("../db");
+const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema(
   {
@@ -10,14 +10,14 @@ const userSchema = new mongoose.Schema(
     age: { type: Number },
     Gender: { type: String },
     phone: { type: Number },
+
     role: {
       type: String,
       enum: ["user", "admin"],
       default: "user",
     },
   },
-
   { timestamps: true },
 );
 
-module.exports = mongoose.model("User", userSchema);
+module.exports = mongoose.models.User || mongoose.model("User", userSchema);

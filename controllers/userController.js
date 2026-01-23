@@ -1,5 +1,7 @@
 const { default: mongoose } = require("mongoose");
-const User = require("../models/user");
+const User = require("../models/User");
+
+const userService = require("../services/userService");
 
 // CREATE USER
 exports.createUser = async (req, res) => {
@@ -22,19 +24,16 @@ exports.createUser = async (req, res) => {
 };
 
 // GET ALL USERS
+
 exports.getUsers = async (req, res) => {
   try {
-    //  Pagination values
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
 
-    //  Build filter FIRST
     const filter = {};
 
-    if (req.query.Gender) {
-      filter.Gender = req.query.Gender;
-    }
+    if (req.query.Gender) filter.Gender = req.query.Gender;
 
     if (req.query.minAge || req.query.maxAge) {
       filter.age = {};
@@ -42,27 +41,23 @@ exports.getUsers = async (req, res) => {
       if (req.query.maxAge) filter.age.$lte = parseInt(req.query.maxAge);
     }
 
-    // search
-
     if (req.query.search) {
       filter.name = { $regex: req.query.search, $options: "i" };
     }
 
-    // Sorting
     const sortBy = req.query.sortBy || "age";
     const sortOrder = req.query.sortOrder === "desc" ? -1 : 1;
     const sortCriteria = { [sortBy]: sortOrder };
-    //  Count filtered users
-    const totalUsers = await User.countDocuments(filter);
+
+    const { users, totalUsers } = await userService.getUsers({
+      filter,
+      sortCriteria,
+      skip,
+      limit,
+    });
+
     const totalPages = Math.ceil(totalUsers / limit);
 
-    // Fetch filtered + paginated users
-    const users = await User.find(filter)
-      .sort(sortCriteria)
-      .skip(skip)
-      .limit(limit);
-
-    // 5️⃣ Send response
     res.json({
       page,
       limit,
@@ -77,7 +72,6 @@ exports.getUsers = async (req, res) => {
     });
   }
 };
-
 exports.updateUser = async (req, res) => {
   try {
     const updatedUser = await User.findByIdAndUpdate(req.params.id, req.body, {

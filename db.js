@@ -1,12 +1,15 @@
-const response = require("mongoose");
-response
-  .connect("mongodb://127.0.0.1:27017/nodebackend")
+const mongoose = require("mongoose");
 
-  .then(() => {
-    console.log("Connected to mongoose database successfully");
-  })
-  .catch((err) => {
-    console.log("error connecting to mongoose data base");
-    console.log(err);
-  });
-module.exports = response;
+const connectDB = async () => {
+  try {
+    await mongoose.connect(process.env.MONGO_URI, {
+      serverSelectionTimeoutMS: 5000,
+    });
+    console.log("MongoDB Connected successfully");
+  } catch (err) {
+    console.error("MongoDB Connection Error:", err.message);
+    process.exit(1);
+  }
+};
+
+module.exports = connectDB;
