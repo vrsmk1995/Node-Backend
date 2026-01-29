@@ -9,15 +9,28 @@ module.exports = function authMiddleWare(req, res, next) {
 
     const token = authHeader.split(" ")[1];
 
-    const decoded = jwt.verify(token, process.env.jwt_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    console.log(decoded, "decoded token");
-    req.userId = decoded.user;
+    console.log("DECODED TOKEN:", decoded);
+
+    // 🔥 Defensive mapping
+    req.userId = decoded.user || decoded.id || decoded._id;
     req.userRole = decoded.role;
+
+    console.log("FINAL userId:", req.userId);
+
+    if (!req.userId) {
+      return res.status(401).json({
+        message: "Token does not contain user id",
+      });
+    }
+
     next();
   } catch (err) {
-    return res
-      .status(401)
-      .json({ message: "Invalid Token or expired token", error: err.message });
+    console.log("auth middleware error:", err);
+    return res.status(401).json({
+      message: "Invalid Token or expired token",
+      error: err.message,
+    });
   }
 };

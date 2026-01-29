@@ -23,21 +23,6 @@ exports.signupValidator = [
     .withMessage(
       "Password must be at least 8 characters and include uppercase, lowercase, number, and special character",
     ),
-  body("age")
-    .notEmpty()
-    .withMessage("Age is required")
-    .isInt({ min: 0 })
-    .withMessage("Age must be a positive number"),
-
-  body("Gender").notEmpty().withMessage("Gender is required"),
-
-  body("phone")
-    .notEmpty()
-    .withMessage("Phone is required")
-    .isLength({ min: 10, max: 10 })
-    .withMessage("Phone number must be 10 digits")
-    .isNumeric()
-    .withMessage("Phone must contain only numbers"),
 ];
 
 exports.loginValidator = [
@@ -56,4 +41,23 @@ exports.loginValidator = [
     .withMessage(
       "Password must be at least 8 characters and include uppercase, lowercase, number, and special character",
     ),
+];
+
+exports.updateProfileValidator = [
+  body("age")
+    .optional()
+    .isInt({ min: 0 })
+    .withMessage("Age must be a positive number"),
+
+  body("Gender")
+    .optional()
+    .isIn(["Male", "Female", "Other"])
+    .withMessage("Gender must be Male, Female, or Other"),
+
+  body("phone")
+    .optional()
+    .isLength({ min: 10, max: 10 })
+    .withMessage("Phone number must be 10 digits")
+    .isNumeric()
+    .withMessage("Phone must contain only numbers"),
 ];

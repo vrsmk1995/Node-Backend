@@ -31,3 +31,24 @@ exports.login = async (req, res) => {
     });
   }
 };
+
+exports.logout = async (req, res) => {
+  try {
+    console.log("CONTROLLER FILE:", __filename);
+    console.log("Controller sees userId:", req.userId);
+
+    if (!req.userId) {
+      return res.status(401).json({
+        message: "Logout called WITHOUT auth middleware",
+      });
+    }
+
+    await authService.logout(req.userId);
+    res.json({ message: "Logout SuccessFul" });
+  } catch (err) {
+    res.status(400).json({
+      message: "Logout failed",
+      error: err.message,
+    });
+  }
+};

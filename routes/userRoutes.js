@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const auth = require("../middleware/authMiddleware");
-
+const { allowOnly } = require("../middleware/whitelist");
 const adminsOnly = require("../middleware/adminMiddleWare");
 
 const {
@@ -13,10 +13,21 @@ const {
   deleteAllusers,
   makeAdmin,
 } = require("../controllers/userController");
+const {
+  updateProfileValidator,
+} = require("../middleware/validators/authValidator");
+const validate = require("../middleware/validators/validate");
 
 router.post("/", createUser);
 router.get("/", getUsers);
-router.put("/:id", updateUser);
+router.put(
+  "/:id",
+  auth,
+  allowOnly(["age", "Gender", "phone"]),
+  updateProfileValidator,
+  validate,
+  updateUser,
+);
 router.delete("/:id", deleteUser);
 router.delete("/", auth, adminsOnly, deleteAllusers);
 router.get("/profile", auth, getProfile);
