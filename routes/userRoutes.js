@@ -23,7 +23,7 @@ router.get("/", getUsers);
 router.put(
   "/:id",
   auth,
-  allowOnly(["age", "Gender", "phone"]),
+  allowOnly(["age", "gender", "phone"]),
   updateProfileValidator,
   validate,
   updateUser,

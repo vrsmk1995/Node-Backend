@@ -49,7 +49,7 @@ exports.updateProfileValidator = [
     .isInt({ min: 0 })
     .withMessage("Age must be a positive number"),
 
-  body("Gender")
+  body("gender")
     .optional()
     .isIn(["Male", "Female", "Other"])
     .withMessage("Gender must be Male, Female, or Other"),

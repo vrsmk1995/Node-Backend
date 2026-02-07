@@ -1,5 +1,5 @@
 const { default: mongoose } = require("mongoose");
-const User = require("../models/User");
+const User = require("../models/user");
 
 const userService = require("../services/userService");
 
@@ -33,7 +33,7 @@ exports.getUsers = async (req, res) => {
 
     const filter = {};
 
-    if (req.query.Gender) filter.Gender = req.query.Gender;
+    if (req.query.gender) filter.gender = req.query.gender;
 
     if (req.query.minAge || req.query.maxAge) {
       filter.age = {};

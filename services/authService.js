@@ -1,7 +1,6 @@
-const User = require("../models/User");
+const User = require("../models/user");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-
 
 // Token Helpers
 
@@ -20,13 +19,33 @@ const generateRefreshToken = (user) => {
   return jwt.sign(
     {
       user: user._id.toString(),
-      role:user.role,
+      role: user.role,
     },
     process.env.JWT_REFRESH_SECRET,
     { expiresIn: "7d" },
   );
 };
 
+//RefreshTokenRotation
+
+exports.rotateRefreshToken = async (oldRefreshToken) => {
+  const decoded = jwt.verify(oldRefreshToken, process.env.JWT_REFRESH_SECRET);
+  const user = await User.findById(decoded.user);
+
+  if (!user || user.refreshToken !== oldRefreshToken) {
+    throw new Error("Invalid refresh Token");
+  }
+  const newAccessToken = generateAccessToken(user);
+  const newRefreshToken = generateRefreshToken(user);
+
+  user.refreshToken = newRefreshToken;
+  await user.save();
+
+  return {
+    accessToken: newAccessToken,
+    refreshToken: newRefreshToken,
+  };
+};
 
 // Signup
 
@@ -52,7 +71,6 @@ exports.signup = async (userData) => {
     role: user.role,
   };
 };
-
 
 // Login (With Refresh Token)
 
@@ -87,10 +105,10 @@ exports.login = async ({ email, password }) => {
 };
 
 exports.logout = async (userId) => {
-  const user = await User.findById(userId)
+  const user = await User.findById(userId);
   if (!user) throw new Error("user not found");
 
   user.refreshToken = null;
   await user.save();
-  return true
-}
+  return true;
+};

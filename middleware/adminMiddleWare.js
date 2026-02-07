@@ -1,10 +1,10 @@
-module.exports = (req,res,next) => {
-    if (
-      req.userRole!=="admin"  
-    ) {
-        return res.status(403).json({
-            message:"Access Denied ,Admins Only"
-        })
+module.exports = function (roles) {
+  return (req, res, next) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return res.status(403).json({
+        message: "Access Denied",
+      });
     }
     next();
-}
+  };
+};
