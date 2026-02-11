@@ -144,21 +144,81 @@ exports.getProfile = async (req, res) => {
 
 exports.makeAdmin = async (req, res) => {
   try {
-    const user = await User.findByIdAndUpdate(
+    // First check if user exists
+    const existingUser = await User.findById(req.params.id);
+
+    if (!existingUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Check BEFORE updating
+    if (existingUser.role === "admin") {
+      return res.status(400).json({
+        message: "User is already an admin",
+      });
+    }
+
+    // Now update role
+    const updatedUser = await User.findByIdAndUpdate(
       req.params.id,
-      {
-        role: "admin",
-      },
+      { role: "admin" },
       { new: true },
     );
 
-    if (!user) {
+    return res.status(200).json({
+      message: "User role updated to admin",
+      user: updatedUser,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      message: "Error updating user role",
+      error: err.message,
+    });
+  }
+};
+
+exports.removeAdmin = async (req, res) => {
+  try {
+    console.log("removeAdmin controller HIT");
+
+    // Prevent admins from removing their own admin privileges
+    const targetUserId = req.params.id;
+    console.log("Target User ID:", targetUserId);
+    if (req.userId === targetUserId) {
+      return res.status(400).json({
+        message: "Admins  cannot remove their own admin privileges",
+      });
+    }
+
+    const existingUser = await User.findById(req.params.id);
+
+    if (!existingUser) {
       return res.status(404).json({ message: "User not found" });
     }
-    res.json(user);
+    if (existingUser.role !== "admin") {
+      return res.status(400).json({
+        message: "User is already not an admin",
+      });
+    }
+
+    const adminCount = await User.countDocuments({ role: "admin" });
+    if (adminCount <= 1) {
+      return res.status(400).json({
+        message: "Cannot remove admin role. At least one admin must remain.",
+      });
+    }
+    const updatedUser = await User.findByIdAndUpdate(
+      targetUserId,
+      { role: "user" },
+      { new: true },
+    );
+    return res.status(200).json({
+      message: "Admin role removed Successfully",
+      user: updatedUser,
+    });
   } catch (err) {
-    res.status(500).json({
-      message: "Error making update role",
+    return res.status(500).json({
+      message: "Error removing admin role",
       error: err.message,
     });
   }

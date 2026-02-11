@@ -4,147 +4,162 @@ const nodemailer = require("nodemailer");
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 
-exports.signup = async (req, res) => {
-  try {
-    const user = await authService.signup(req.body);
+const AppError = require("../utils/AppError");
+const catchAsync = require("../utils/catchAsync");
+const { successResponse } = require("../utils/responseHandler");
 
-    res.status(201).json({
-      message: "User registered successfully",
-      user,
-    });
-  } catch (err) {
-    res.status(400).json({
-      message: "Signup failed",
-      error: err.message,
-    });
+// SIGNUP
+exports.signup = catchAsync(async (req, res, next) => {
+  const user = await authService.signup(req.body);
+
+  if (!user) {
+    return next(new AppError("Signup failed", 400));
   }
-};
 
-exports.login = async (req, res) => {
-  try {
-    const result = await authService.login(req.body);
+  const { password, ...safeUser } = user.toObject();
 
-    res.json({
-      message: "Login successful",
-      ...result,
-    });
-  } catch (err) {
-    res.status(400).json({
-      message: "Login failed",
-      error: err.message,
-    });
+  return successResponse(
+    res,
+    "User Registered Successfully",
+    { user: safeUser },
+    201,
+  );
+});
+
+// LOGIN
+exports.login = catchAsync(async (req, res, next) => {
+  const result = await authService.login(req.body);
+
+  if (!result) {
+    return next(new AppError("Login failed", 400));
   }
-};
+  return successResponse(res, "Login Successful", result);
+});
 
-exports.logout = async (req, res) => {
-  try {
-    console.log("CONTROLLER FILE:", __filename);
-    console.log("Controller sees userId:", req.userId);
-
-    if (!req.userId) {
-      return res.status(401).json({
-        message: "Logout called WITHOUT auth middleware",
-      });
-    }
-
-    await authService.logout(req.userId);
-    res.json({ message: "Logout SuccessFul" });
-  } catch (err) {
-    res.status(400).json({
-      message: "Logout failed",
-      error: err.message,
-    });
+// LOGOUT
+exports.logout = catchAsync(async (req, res, next) => {
+  if (!req.userId) {
+    return next(new AppError("Unauthorized request", 401));
   }
-};
 
-exports.refreshToken = async (req, res) => {
-  try {
-    const { refreshToken } = req.body;
-    if (!refreshToken) {
-      return res.status(400).json({ message: "Refresh Token Required" });
-    }
+  await authService.logout(req.userId);
 
-    const result = await authService.rotateRefreshToken(refreshToken);
-    res.json(result);
-  } catch (err) {
-    res.status(401).json({
-      message: "refresh token is expired or invalid",
-      error: err.message,
-    });
+  return successResponse(res, "Logout Successful");
+});
+
+// REFRESH TOKEN
+exports.refreshToken = catchAsync(async (req, res, next) => {
+  const { refreshToken } = req.body;
+
+  if (!refreshToken) {
+    return next(new AppError("Refresh Token Required", 400));
   }
-};
 
-exports.forgotPassword = async (req, res) => {
-  try {
-    const { email } = req.body;
+  const result = await authService.rotateRefreshToken(refreshToken);
 
-    if (!email) {
-      return res.status(400).json({ message: "Email is required" });
-    }
+  return successResponse(res, "Token Refreshed", result);
+});
 
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ message: "User not found" });
-    }
+// FORGOT PASSWORD
+exports.forgotPassword = catchAsync(async (req, res, next) => {
+  const { email } = req.body;
 
-    const token = crypto.randomBytes(20).toString("hex");
-
-    user.resetPasswordToken = token;
-    user.resetPasswordExpires = Date.now() + 3600000;
-
-    await user.save();
-
-    console.log("EMAIL_USER:", process.env.EMAIL_USER);
-    console.log("EMAIL_PASSWORD:", process.env.EMAIL_PASS);
-
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
-
-    const mailOptions = {
-      to: user.email,
-      from: process.env.EMAIL_USER,
-      subject: "Reset Password",
-      text: `Click this link to reset password: http://localhost:3000/reset/${token}`,
-    };
-
-    await transporter.sendMail(mailOptions);
-
-    res.status(200).json({ message: "Password reset link sent to mail" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Internal server error" });
+  if (!email) {
+    return next(new AppError("Email is required", 400));
   }
-};
 
-exports.resetPassword = async (req, res) => {
-  try {
-    const { token } = req.params;
-    const { newPassword } = req.body;
+  const user = await User.findOne({ email });
 
-    if (!newPassword) {
-      return res.status(400).json({ message: "New password is required" });
-    }
-    const user = await User.findOne({
-      resetPasswordToken: token,
-      resetPasswordExpires: { $gt: Date.now() },
-    });
-    if (!user) {
-      return res.status(400).json({ message: "Invalid or expired token" });
-    }
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    user.password = hashedPassword;
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
-
-    await user.save();
-    res.status(200).json({ message: "Password Reset successful" });
-  } catch (err) {
-    res.status(500).json({ message: "Internal Server Error" });
+  if (!user) {
+    return next(new AppError("User not found", 404));
   }
-};
+
+  const token = crypto.randomBytes(20).toString("hex");
+
+  user.resetPasswordToken = token;
+  user.resetPasswordExpires = Date.now() + 3600000;
+
+  await user.save();
+
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  const mailOptions = {
+    to: user.email,
+    from: process.env.EMAIL_USER,
+    subject: "Reset Password",
+    text: `Click this link to reset password: http://localhost:3000/reset/${token}`,
+  };
+
+  await transporter.sendMail(mailOptions);
+  return successResponse(res, "Password reset email sent");
+});
+
+// RESET PASSWORD
+exports.resetPassword = catchAsync(async (req, res, next) => {
+  const { token, newPassword } = req.body;
+
+  if (!token) {
+    return next(new AppError("Token is required", 400));
+  }
+
+  if (!newPassword) {
+    return next(new AppError("New password is required", 400));
+  }
+
+  const user = await User.findOne({
+    resetPasswordToken: token,
+    resetPasswordExpires: { $gt: Date.now() },
+  });
+
+  if (!user) {
+    return next(new AppError("Invalid or expired token", 400));
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+  user.password = hashedPassword;
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpires = undefined;
+
+  await user.save();
+
+  return successResponse(res, "Password reset successful");
+});
+
+// CHANGE PASSWORD
+exports.changePassword = catchAsync(async (req, res, next) => {
+  const { oldPassword, newPassword } = req.body;
+
+  if (!oldPassword || !newPassword) {
+    return next(new AppError("Old and new password are required", 400));
+  }
+
+  const user = await User.findById(req.userId);
+
+  if (!user) {
+    return next(new AppError("User not found", 404));
+  }
+
+  const isMatch = await bcrypt.compare(oldPassword, user.password);
+
+  if (!isMatch) {
+    return next(new AppError("Old password is incorrect", 400));
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+  user.password = hashedPassword;
+
+  // logout all sessions
+  user.refreshToken = null;
+
+  await user.save();
+
+  return successResponse(res, "Password changed successfully");
+});

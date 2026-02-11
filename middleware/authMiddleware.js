@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 module.exports = function authMiddleWare(req, res, next) {
   try {
     const authHeader = req.headers.authorization;
+
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({ message: "No Token Provided" });
     }
@@ -13,17 +14,21 @@ module.exports = function authMiddleWare(req, res, next) {
 
     console.log("DECODED TOKEN:", decoded);
 
-    // 🔥 Defensive mapping
-    req.userId = decoded.user || decoded.id || decoded._id;
-    req.userRole = decoded.role;
+    const userId = decoded.user || decoded.id || decoded._id;
 
-    console.log("FINAL userId:", req.userId);
-
-    if (!req.userId) {
+    if (!userId) {
       return res.status(401).json({
         message: "Token does not contain user id",
       });
     }
+
+    // ✅ Store everything under req.user (CLEAN APPROACH)
+    req.user = {
+      id: userId,
+      role: decoded.role,
+    };
+
+    console.log("FINAL userId:", req.user.id);
 
     next();
   } catch (err) {

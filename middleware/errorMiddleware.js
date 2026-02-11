@@ -1,6 +1,13 @@
 module.exports = (err, req, res, next) => {
-    console.log(err.stack);
-    res.status(500).json({
-        message: err.message ||"internal server error"
-    })
-}
+  console.error("GLOBAL ERROR HANDLER:");
+  console.error(err);
+
+  const statusCode = err.statusCode || 500;
+  const status = err.status || "error";
+
+  res.status(statusCode).json({
+    status,
+    message: err.message || "Something went wrong",
+    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
+  });
+};

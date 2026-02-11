@@ -9,6 +9,7 @@ const {
   refreshToken,
   resetPassword,
   forgotPassword,
+  changePassword,
 } = require("../controllers/authController");
 
 const {
@@ -22,7 +23,7 @@ const { authLimiter } = require("../middleware/rateLimit");
 const { updateUser } = require("../controllers/userController");
 const { allowOnly } = require("../middleware/whitelist");
 const authMiddleware = require("../middleware/authMiddleware");
-const allowRoles = require("../middleware/adminMiddleWare");
+
 console.log("AUTH ROUTES FILE LOADED");
 
 router.post(
@@ -33,24 +34,11 @@ router.post(
   validate,
   signup,
 );
-
 router.post("/login", authLimiter, loginValidator, validate, login);
-
 router.post("/logout", authLimiter, authMiddleware, logout);
-
-router.put(
-  "/:id",
-  authLimiter,
-  allowOnly(["age", "phone", "gender"]),
-  updateProfileValidator,
-  validate,
-  updateUser,
-);
-
-router.post("/update-role", authMiddleware, allowRoles(["admin"]), updateUser);
 router.post("/refresh-token", refreshToken);
-
-router.post("/forgot-password", forgotPassword);
+router.post("/forgot-password", authLimiter, forgotPassword);
 router.post("/reset-password", resetPassword);
+router.post("/change-password", authLimiter, authMiddleware, changePassword);
 
 module.exports = router;
