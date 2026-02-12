@@ -16,7 +16,14 @@ exports.getUsers = async ({ filter, sortCriteria, skip, limit }) => {
 };
 
 exports.updateUser = async (id, data) => {
-  return await User.findByIdAndUpdate(id, data, { new: true });
+  return await User.findByIdAndUpdate(
+    id,
+    data,
+
+    {
+      returnDocument: "after",
+    },
+  );
 };
 
 exports.deleteUser = async (id) => {

@@ -16,7 +16,7 @@ exports.signup = catchAsync(async (req, res, next) => {
     return next(new AppError("Signup failed", 400));
   }
 
-  const { password, ...safeUser } = user.toObject();
+  const { password, ...safeUser } = user;
 
   return successResponse(
     res,

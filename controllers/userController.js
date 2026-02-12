@@ -162,7 +162,8 @@ exports.makeAdmin = async (req, res) => {
     const updatedUser = await User.findByIdAndUpdate(
       req.params.id,
       { role: "admin" },
-      { new: true },
+
+      { returnDocument: "after" },
     );
 
     return res.status(200).json({
@@ -210,7 +211,8 @@ exports.removeAdmin = async (req, res) => {
     const updatedUser = await User.findByIdAndUpdate(
       targetUserId,
       { role: "user" },
-      { new: true },
+
+      { returnDocument: "after" },
     );
     return res.status(200).json({
       message: "Admin role removed Successfully",

@@ -1,10 +1,13 @@
 require("dotenv").config();
 
+
 const express = require("express");
 const http = require("http");
 const helmet = require("helmet");
 const cors = require("cors");
 const connectDB = require("./db");
+const morgan = require("morgan");
+const logger = require("./utils/logger");
 
 const app = express();
 
@@ -23,6 +26,15 @@ connectDB();
 app.get("/", (req, res) => {
   res.send("API Running Successfully");
 });
+
+app.use(
+  morgan("combined", {
+    stream: {
+      write: (message) => logger.info(message.trim()),
+    },
+  }),
+);
+
 
 const userRoutes = require("./routes/userRoutes");
 const authRoutes = require("./routes/authRoutes");
