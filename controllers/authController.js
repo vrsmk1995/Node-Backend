@@ -30,9 +30,9 @@ exports.signup = catchAsync(async (req, res, next) => {
 exports.login = catchAsync(async (req, res, next) => {
   const result = await authService.login(req.body);
 
-  if (!result) {
-    return next(new AppError("Login failed", 400));
-  }
+  // if (!result) {
+  //   return next(new AppError("Login failed", 400));
+  // }
   return successResponse(res, "Login Successful", result);
 });
 

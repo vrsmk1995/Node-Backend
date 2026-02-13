@@ -51,7 +51,7 @@ exports.updateProfileValidator = [
 
   body("gender")
     .optional()
-    .isIn(["Male", "Female", "Other"])
+    .isIn(["male", "female", "others"])
     .withMessage("Gender must be Male, Female, or Other"),
 
   body("phone")
